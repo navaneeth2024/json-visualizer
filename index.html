@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JSON Explorer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="light" class="flex flex-col items-center">
+
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-content">
+    <span class="navbar-title">JSON Explorer</span>
+    <div class="navbar-actions">
+      <button id="themeToggle" class="icon-btn" title="Toggle dark mode">🌗</button>
+      <div class="relative">
+        <button id="menuBtn" class="icon-btn" title="Options">⋮</button>
+        <div id="menu" class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded shadow hidden z-10 text-sm">
+          <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" id="downloadCSV">⬇ Download CSV</button>
+          <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" id="downloadJSON">⬇ Download JSON</button>
+          <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" id="toggleTimestamps">🕒 Toggle Timestamps</button>
+          <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" id="toggleColumns">📑 Toggle Columns</button>
+          <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" id="clearData">🗑 Clear Data</button>
+          <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" id="resetPrefs">♻ Reset Preferences</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- File Upload -->
+<div class="mui-card mt-5 p-6 w-full max-w-xl text-center">
+  <input type="file" id="jsonFile" accept=".json" class="hidden" />
+  <label for="jsonFile" class="btn cursor-pointer">Choose JSON File</label>
+  <p id="fileName" class="mt-3 text-gray-600 text-sm"></p>
+</div>
+
+<!-- Dataset Selector -->
+<div id="datasetSelector" class="mt-6 hidden">
+  <label for="datasetSelect" class="mr-2">Select dataset:</label>
+  <select id="datasetSelect" class="border border-gray-300 rounded px-2 py-1"></select>
+</div>
+
+<!-- Search -->
+<div class="mt-6 w-full max-w-6xl flex justify-end">
+  <input id="searchInput" type="text" placeholder="🔍 Search..." class="border border-gray-300 rounded px-2 py-1 w-64 focus:ring-2 focus:ring-[var(--primary)] outline-none" />
+</div>
+
+<!-- Output -->
+<div id="output" class="mt-6 w-full max-w-6xl overflow-auto mui-card p-4">
+  <div id="dummyTable" class="overflow-x-auto">
+    <table class="min-w-full border border-gray-300 text-sm text-left border-collapse rounded-lg opacity-80">
+      <thead>
+        <tr>
+          <th class="border px-3 py-2 font-semibold">Name</th>
+          <th class="border px-3 py-2 font-semibold">Email</th>
+          <th class="border px-3 py-2 font-semibold">Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="border px-3 py-2">Alice</td>
+          <td class="border px-3 py-2">alice@example.com</td>
+          <td class="border px-3 py-2">Admin</td>
+        </tr>
+        <tr>
+          <td class="border px-3 py-2">Bob</td>
+          <td class="border px-3 py-2">bob@example.com</td>
+          <td class="border px-3 py-2">User</td>
+        </tr>
+        <tr>
+          <td class="border px-3 py-2">Charlie</td>
+          <td class="border px-3 py-2">charlie@example.com</td>
+          <td class="border px-3 py-2">Viewer</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="text-center text-gray-400 mt-2 text-xs">(Sample data — load a JSON file to view your data)</div>
+  </div>
+  <div id="tableContainer" class="overflow-x-auto"></div>
+    <!-- Sort popup -->
+    <div id="sortPopup" class="fixed z-50 bg-white dark:bg-[#23272e] border border-gray-300 dark:border-gray-700 rounded shadow p-4 hidden" style="min-width:180px;">
+      <div class="font-semibold mb-2">Sort by <span id="sortColName"></span></div>
+      <form id="sortForm">
+        <label class="flex items-center gap-2 mb-1">
+          <input type="radio" name="sortOrder" value="asc" class="sortRadio"> Ascending
+        </label>
+        <label class="flex items-center gap-2 mb-1">
+          <input type="radio" name="sortOrder" value="desc" class="sortRadio"> Descending
+        </label>
+      </form>
+      <div class="flex gap-2 mt-2">
+        <button id="clearSortPopup" class="btn flex-1" type="button">Clear</button>
+      </div>
+    </div>
+
+  <!-- Pagination -->
+  <div id="pagination" class="flex flex-wrap justify-between items-center mt-6 hidden gap-4 text-sm">
+    <div class="flex items-center gap-3">
+      <label for="rowsPerPage">Rows per page:</label>
+      <select id="rowsPerPage">
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="75">75</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="prevBtn" class="btn">⬅ Prev</button>
+      <span id="pageInfo"></span>
+      <button id="nextBtn" class="btn">Next ➡</button>
+    </div>
+    <div class="flex items-center gap-2">
+      <label for="gotoPage">Go to:</label>
+      <input id="gotoPage" type="number" min="1" class="border border-gray-300 rounded w-16 px-2 py-1 text-center" />
+      <button id="gotoBtn" class="btn">Go</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Footer -->
+<footer id="footer">
+  JSON Explorer &copy; 2025 &mdash; Built with ♥ using HTML, CSS, Tailwind, and JavaScript.<br>
+  Powered by ChatGPT
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
